@@ -1,45 +1,53 @@
 return {
-  "rose-pine/neovim",
-  name = "rose-pine",
-  lazy = false, -- Ensure it loads on startup
-  priority = 1000, -- Load this before other plugins
-  -- 1. Pass options here using the standard lazy.nvim `opts` table
-  opts = {
-    variant = "auto", -- auto, main, moon, or dawn
-    dark_variant = "moon", -- main, moon, or dawn
-    dim_nc_background = false,
+  -- rose-pine: configure only. We do NOT call `vim.cmd("colorscheme")` here.
+  -- Letting LazyVim be the single thing that applies the colorscheme (see the
+  -- spec below) avoids a startup race between this config, LazyVim's own
+  -- colorscheme apply, and auto-dark-mode.
+  {
+    "rose-pine/neovim",
+    name = "rose-pine",
+    lazy = false, -- Ensure it loads on startup
+    priority = 1000, -- Load this before other plugins
+    -- Pass options here using the standard lazy.nvim `opts` table. lazy.nvim
+    -- automatically calls require("rose-pine").setup(opts) for us.
+    opts = {
+      -- `auto` derives the variant from `vim.o.background`:
+      --   background=light -> dawn (light), background=dark -> dark_variant.
+      variant = "auto", -- auto, main, moon, or dawn
+      dark_variant = "moon", -- main, moon, or dawn
+      dim_nc_background = false,
 
-    -- 2. Enable transparency
-    styles = {
-      transparency = true, -- Modern way to make backgrounds transparent
-      italic = true, -- keep italic on so the override below can apply it selectively
+      -- Enable transparency
+      styles = {
+        transparency = true, -- Modern way to make backgrounds transparent
+        italic = true, -- keep italic on so the override below can apply it selectively
+      },
+
+      -- Invert rose-pine's default italic logic for fonts like Fira Code iScript:
+      -- italicize keywords/statements, leave variables/identifiers upright.
+      before_highlight = function(group, highlight, _)
+        if group == "Keyword" or group == "Statement" or group:match("^@keyword") then
+          highlight.italic = true
+        elseif
+          group:match("^@variable")
+          or group == "@property"
+          or group == "@field"
+          or group == "@parameter"
+        then
+          highlight.italic = false
+        end
+      end,
     },
-
-    -- Invert rose-pine's default italic logic for fonts like Fira Code iScript:
-    -- italicize keywords/statements, leave variables/identifiers upright.
-    before_highlight = function(group, highlight, _)
-      if group == "Keyword" or group == "Statement" or group:match("^@keyword") then
-        highlight.italic = true
-      elseif
-        group:match("^@variable")
-        or group == "@property"
-        or group == "@field"
-        or group == "@parameter"
-      then
-        highlight.italic = false
-      end
-    end,
-
-    -- Alternative older method if you want to aggressively strip backgrounds:
-    -- disable_background = true,
-    -- disable_float_background = true,
   },
-  config = function(_, opts)
-    -- Pass the opts table into rose-pine's setup function
-    require("rose-pine").setup(opts)
-    -- Set the colorscheme
-    vim.cmd("colorscheme rose-pine")
-  end,
+
+  -- Tell LazyVim to use rose-pine. This is the single source of truth for
+  -- "which colorscheme is active", applied once after plugins load.
+  {
+    "LazyVim/LazyVim",
+    opts = {
+      colorscheme = "rose-pine",
+    },
+  },
 }
 -- return {
 --   {
